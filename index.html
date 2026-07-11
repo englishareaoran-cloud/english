@@ -58,6 +58,41 @@
             margin-bottom: 25px;
         }
 
+        /* Name Input Screen */
+        .name-screen {
+            text-align: center;
+        }
+
+        .name-input-group {
+            margin: 30px 0;
+        }
+
+        .name-input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        .name-input-group input {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            transition: border-color 0.2s ease;
+        }
+
+        .name-input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .name-input-group input::placeholder {
+            color: #9ca3af;
+        }
+
         .progress-container {
             width: 100%;
             background-color: var(--border);
@@ -175,6 +210,15 @@
             text-align: center;
         }
 
+        .student-name-display {
+            font-size: 18px;
+            color: var(--text-light);
+            margin-bottom: 15px;
+            padding: 12px;
+            background-color: #f3f4f6;
+            border-radius: 8px;
+        }
+
         .score-display {
             font-size: 48px;
             font-weight: 800;
@@ -210,13 +254,44 @@
             background-color: #f3f4f6;
             color: var(--text-light);
         }
+
+        .results-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .results-actions button {
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
     </style>
 </head>
 <body>
 
 <div class="quiz-container">
+    <!-- Name Input Screen -->
+    <div id="name-screen" class="name-screen">
+        <h1>English Level Tester</h1>
+        <p class="subtitle">Mixed Questions (A1 to B2 Level)</p>
+        
+        <div class="name-input-group">
+            <label for="student-name">Please enter your name:</label>
+            <input type="text" id="student-name" placeholder="Enter your full name" autocomplete="off">
+        </div>
+        
+        <button class="btn" id="start-btn" disabled>Start Test</button>
+    </div>
+
     <!-- Quiz Screen -->
-    <div id="quiz-screen">
+    <div id="quiz-screen" style="display: none;">
         <h1>English Level Tester</h1>
         <p class="subtitle">Mixed Questions (A1 to B2 Level)</p>
 
@@ -243,6 +318,7 @@
     <!-- Results Screen -->
     <div id="results-screen" class="results-screen">
         <h1>Your Results</h1>
+        <div class="student-name-display" id="student-name-display">Student Name</div>
         <div class="score-display" id="final-score">0 / 10</div>
         <div class="level-badge" id="level-badge">Calculating...</div>
         
@@ -261,7 +337,10 @@
             </tbody>
         </table>
 
-        <button class="btn" id="restart-btn">Try Again</button>
+        <div class="results-actions">
+            <button class="btn btn-secondary" id="download-btn">Download Results</button>
+            <button class="btn" id="restart-btn">Take Test Again</button>
+        </div>
     </div>
 </div>
 
@@ -340,6 +419,7 @@
         }
     ];
 
+    let studentName = "";
     let currentQuestionIndex = 0;
     let score = 0;
     let selectedOptionIndex = null;
@@ -354,8 +434,11 @@
     };
 
     // DOM Elements
+    const nameScreen = document.getElementById('name-screen');
     const quizScreen = document.getElementById('quiz-screen');
     const resultsScreen = document.getElementById('results-screen');
+    const studentNameInput = document.getElementById('student-name');
+    const startBtn = document.getElementById('start-btn');
     const progressBar = document.getElementById('progress-bar');
     const questionNumberText = document.getElementById('question-number');
     const scoreCounter = document.getElementById('score-counter');
@@ -363,13 +446,37 @@
     const optionsList = document.getElementById('options-list');
     const explanationBox = document.getElementById('explanation-box');
     const actionBtn = document.getElementById('action-btn');
+    const studentNameDisplay = document.getElementById('student-name-display');
     const finalScoreText = document.getElementById('final-score');
     const levelBadge = document.getElementById('level-badge');
     const breakdownRows = document.getElementById('breakdown-rows');
+    const downloadBtn = document.getElementById('download-btn');
     const restartBtn = document.getElementById('restart-btn');
 
     // Initialize totals
     questions.forEach(q => levelStats[q.level].total++);
+
+    // Name input validation
+    studentNameInput.addEventListener('input', () => {
+        startBtn.disabled = studentNameInput.value.trim() === '';
+    });
+
+    // Start test
+    startBtn.addEventListener('click', () => {
+        studentName = studentNameInput.value.trim();
+        if (studentName) {
+            nameScreen.style.display = 'none';
+            quizScreen.style.display = 'block';
+            loadQuestion();
+        }
+    });
+
+    // Allow Enter key to start test
+    studentNameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !startBtn.disabled) {
+            startBtn.click();
+        }
+    });
 
     function loadQuestion() {
         isAnswered = false;
@@ -462,6 +569,8 @@
         resultsScreen.style.display = "block";
         progressBar.style.width = "100%";
         
+        // Display student name
+        studentNameDisplay.innerText = `Student: ${studentName}`;
         finalScoreText.innerText = `${score} / ${questions.length}`;
         
         // Calculate estimated level
@@ -486,21 +595,88 @@
             `;
             breakdownRows.appendChild(tr);
         }
+
+        // Save result to localStorage
+        saveResult(estimatedLevel);
+    }
+
+    function saveResult(estimatedLevel) {
+        const result = {
+            name: studentName,
+            score: score,
+            totalQuestions: questions.length,
+            date: new Date().toLocaleString(),
+            levelStats: levelStats,
+            estimatedLevel: estimatedLevel
+        };
+
+        let results = JSON.parse(localStorage.getItem('testResults')) || [];
+        results.push(result);
+        localStorage.setItem('testResults', JSON.stringify(results));
+    }
+
+    downloadBtn.addEventListener('click', () => {
+        const result = {
+            name: studentName,
+            score: `${score} / ${questions.length}`,
+            estimatedLevel: levelBadge.innerText,
+            date: new Date().toLocaleString(),
+            breakdown: levelStats
+        };
+
+        const csv = generateCSV(result);
+        downloadCSV(csv, `${studentName}_test_results.csv`);
+    });
+
+    function generateCSV(result) {
+        let csv = "English Level Test Results\n\n";
+        csv += `Student Name,${result.name}\n`;
+        csv += `Score,${result.score}\n`;
+        csv += `Estimated Level,${result.estimatedLevel}\n`;
+        csv += `Date,${result.date}\n\n`;
+        csv += "Performance by Level\n";
+        csv += "CEFR Level,Correct,Total,Percentage\n";
+        
+        for (const lvl in result.breakdown) {
+            const stats = result.breakdown[lvl];
+            const pct = Math.round((stats.correct / stats.total) * 100) || 0;
+            csv += `${lvl},${stats.correct},${stats.total},${pct}%\n`;
+        }
+        
+        return csv;
+    }
+
+    function downloadCSV(csv, filename) {
+        const element = document.createElement('a');
+        element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
+        element.setAttribute('download', filename);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
     }
 
     restartBtn.addEventListener('click', () => {
         currentQuestionIndex = 0;
         score = 0;
+        studentName = "";
+        selectedOptionIndex = null;
+        isAnswered = false;
+        
         for (const lvl in levelStats) {
             levelStats[lvl].correct = 0;
         }
+        
+        studentNameInput.value = "";
+        studentNameInput.focus();
+        startBtn.disabled = true;
+        
         resultsScreen.style.display = "none";
-        quizScreen.style.display = "block";
-        loadQuestion();
+        nameScreen.style.display = "block";
     });
 
-    // Start App
-    loadQuestion();
+    // Auto-focus on name input
+    studentNameInput.focus();
 </script>
 
 </body>
