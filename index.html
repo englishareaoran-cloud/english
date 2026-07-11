@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Level Tester (A1 - B2)</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --background: #f9fafb;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --text-light: #4b5563;
+            --success: #10b981;
+            --error: #ef4444;
+            --border: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background: var(--card-bg);
+            max-width: 600px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 30px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: center;
+            color: var(--primary);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-light);
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: var(--border);
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .question-text {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .options-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .option-item {
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        .option-item:hover:not(.disabled) {
+            border-color: var(--primary);
+            background-color: #f5f3ff;
+        }
+
+        .option-item.selected {
+            border-color: var(--primary);
+            background-color: #eeebff;
+            font-weight: 600;
+        }
+
+        .option-item.correct {
+            border-color: var(--success);
+            background-color: #ecfdf5;
+            color: #065f46;
+            font-weight: 600;
+        }
+
+        .option-item.incorrect {
+            border-color: var(--error);
+            background-color: #fef2f2;
+            color: #991b1b;
+        }
+
+        .option-item.disabled {
+            cursor: not-allowed;
+        }
+
+        .explanation-box {
+            background-color: #f3f4f6;
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 25px;
+            font-size: 14px;
+            line-height: 1.5;
+            display: none;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        /* Results Page Styles */
+        .results-screen {
+            display: none;
+            text-align: center;
+        }
+
+        .score-display {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 20px 0;
+        }
+
+        .level-badge {
+            display: inline-block;
+            background-color: #eeebff;
+            color: var(--primary);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 20px;
+            margin-bottom: 25px;
+        }
+
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0 30px 0;
+            font-size: 15px;
+        }
+
+        .breakdown-table th, .breakdown-table td {
+            padding: 12px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .breakdown-table th {
+            background-color: #f3f4f6;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <!-- Quiz Screen -->
+    <div id="quiz-screen">
+        <h1>English Level Tester</h1>
+        <p class="subtitle">Mixed Questions (A1 to B2 Level)</p>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+
+        <div class="quiz-header">
+            <span id="question-number">Question 1 of 10</span>
+            <span id="score-counter">Score: 0</span>
+        </div>
+
+        <div class="question-text" id="question-text">Loading question...</div>
+
+        <ul class="options-list" id="options-list">
+            <!-- JavaScript will insert options here -->
+        </ul>
+
+        <div class="explanation-box" id="explanation-box"></div>
+
+        <button class="btn" id="action-btn" disabled>Submit Answer</button>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="results-screen" class="results-screen">
+        <h1>Your Results</h1>
+        <div class="score-display" id="final-score">0 / 10</div>
+        <div class="level-badge" id="level-badge">Calculating...</div>
+        
+        <p style="color: var(--text-light); margin-bottom: 20px;">Here is how you performed at each level:</p>
+        
+        <table class="breakdown-table">
+            <thead>
+                <tr>
+                    <th>CEFR Level</th>
+                    <th>Correct Answers</th>
+                    <th>Performance</th>
+                </tr>
+            </thead>
+            <tbody id="breakdown-rows">
+                <!-- JavaScript will insert breakdown rows -->
+            </tbody>
+        </table>
+
+        <button class="btn" id="restart-btn">Try Again</button>
+    </div>
+</div>
+
+<script>
+    // 10 Scrambled questions covering A1, A2, B1, B2 levels
+    const questions = [
+        {
+            level: "A2",
+            question: "Where ________ you go on vacation last summer?",
+            options: ["do", "did", "have", "were"],
+            correct: 1,
+            explanation: "We use 'did' to form questions in the Past Simple tense for completed actions in the past."
+        },
+        {
+            level: "B2",
+            question: "If I ________ harder at university, I would have a better job now.",
+            options: ["studied", "had studied", "would study", "have studied"],
+            correct: 1,
+            explanation: "This is a mixed conditional. We use 'had + past participle' (past perfect) in the 'if-clause' to talk about a hypothetical past action with a present result."
+        },
+        {
+            level: "A1",
+            question: "Hello! What ________ your name?",
+            options: ["is", "am", "are", "be"],
+            correct: 0,
+            explanation: "For singular third-person objects/nouns like 'your name', we use the verb form 'is'."
+        },
+        {
+            level: "B1",
+            question: "She has been working here ________ three years.",
+            options: ["since", "for", "during", "ago"],
+            correct: 1,
+            explanation: "We use 'for' to state the duration of time (three years), whereas 'since' is used for a specific starting point in time."
+        },
+        {
+            level: "B2",
+            question: "Despite ________ the market carefully, the company decided not to launch the new product.",
+            options: ["research", "researched", "researching", "to research"],
+            correct: 2,
+            explanation: "'Despite' is a preposition and must be followed by a noun, a pronoun, or a gerund (-ing form of the verb)."
+        },
+        {
+            level: "A1",
+            question: "They ________ got a car, but they have two bicycles.",
+            options: ["hasn't", "don't", "haven't", "not"],
+            correct: 2,
+            explanation: "With 'they', we use 'have not' or 'haven't' followed by 'got' to show possession."
+        },
+        {
+            level: "B1",
+            question: "We need to find a way to ________ our goals by the end of this business quarter.",
+            options: ["accomplish", "manage", "succeed", "deal"],
+            correct: 0,
+            explanation: "'Accomplish' is a direct synonym of 'achieve' and fits perfectly with 'goals'. 'Succeed' requires the preposition 'in'."
+        },
+        {
+            level: "A2",
+            question: "The kitchen is much ________ than the living room.",
+            options: ["biggest", "bigger", "more big", "big"],
+            correct: 1,
+            explanation: "For short, one-syllable adjectives like 'big', we add '-er' to form the comparative degree when comparing two things."
+        },
+        {
+            level: "B1",
+            question: "I can't meet you tonight because I'm looking ________ my little sister.",
+            options: ["at", "for", "after", "to"],
+            correct: 2,
+            explanation: "The phrasal verb 'look after' means to take care of someone or something."
+        },
+        {
+            level: "B2",
+            question: "The manager turned ________ the job offer because the salary was too low.",
+            options: ["down", "off", "away", "up"],
+            correct: 0,
+            explanation: "The phrasal verb 'turn down' means to reject or refuse an offer or request."
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let selectedOptionIndex = null;
+    let isAnswered = false;
+
+    // Track points per CEFR level
+    const levelStats = {
+        A1: { correct: 0, total: 0 },
+        A2: { correct: 0, total: 0 },
+        B1: { correct: 0, total: 0 },
+        B2: { correct: 0, total: 0 }
+    };
+
+    // DOM Elements
+    const quizScreen = document.getElementById('quiz-screen');
+    const resultsScreen = document.getElementById('results-screen');
+    const progressBar = document.getElementById('progress-bar');
+    const questionNumberText = document.getElementById('question-number');
+    const scoreCounter = document.getElementById('score-counter');
+    const questionText = document.getElementById('question-text');
+    const optionsList = document.getElementById('options-list');
+    const explanationBox = document.getElementById('explanation-box');
+    const actionBtn = document.getElementById('action-btn');
+    const finalScoreText = document.getElementById('final-score');
+    const levelBadge = document.getElementById('level-badge');
+    const breakdownRows = document.getElementById('breakdown-rows');
+    const restartBtn = document.getElementById('restart-btn');
+
+    // Initialize totals
+    questions.forEach(q => levelStats[q.level].total++);
+
+    function loadQuestion() {
+        isAnswered = false;
+        selectedOptionIndex = null;
+        actionBtn.disabled = true;
+        actionBtn.innerText = "Submit Answer";
+        explanationBox.style.display = "none";
+        
+        const currentQuestion = questions[currentQuestionIndex];
+        
+        // Progress and header updates
+        const progressPercent = ((currentQuestionIndex) / questions.length) * 100;
+        progressBar.style.width = `${progressPercent}%`;
+        questionNumberText.innerText = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
+        scoreCounter.innerText = `Score: ${score}`;
+        
+        // Load texts
+        questionText.innerText = currentQuestion.question;
+        optionsList.innerHTML = "";
+        
+        currentQuestion.options.forEach((option, index) => {
+            const li = document.createElement('li');
+            li.className = "option-item";
+            li.innerText = option;
+            li.addEventListener('click', () => selectOption(index));
+            optionsList.appendChild(li);
+        });
+    }
+
+    function selectOption(index) {
+        if (isAnswered) return;
+        
+        selectedOptionIndex = index;
+        actionBtn.disabled = false;
+        
+        const items = optionsList.getElementsByClassName('option-item');
+        for (let i = 0; i < items.length; i++) {
+            items[i].classList.remove('selected');
+        }
+        items[index].classList.add('selected');
+    }
+
+    function submitAnswer() {
+        isAnswered = true;
+        const currentQuestion = questions[currentQuestionIndex];
+        const items = optionsList.getElementsByClassName('option-item');
+        
+        // Disable option interactions
+        for (let i = 0; i < items.length; i++) {
+            items[i].classList.add('disabled');
+        }
+        
+        // Grade answer
+        if (selectedOptionIndex === currentQuestion.correct) {
+            items[selectedOptionIndex].classList.add('correct');
+            score++;
+            levelStats[currentQuestion.level].correct++;
+        } else {
+            items[selectedOptionIndex].classList.add('incorrect');
+            items[currentQuestion.correct].classList.add('correct');
+        }
+        
+        // Show details
+        explanationBox.innerText = currentQuestion.explanation;
+        explanationBox.style.display = "block";
+        
+        // Change button layout
+        if (currentQuestionIndex === questions.length - 1) {
+            actionBtn.innerText = "See Results";
+        } else {
+            actionBtn.innerText = "Next Question";
+        }
+    }
+
+    actionBtn.addEventListener('click', () => {
+        if (!isAnswered) {
+            submitAnswer();
+        } else {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+    });
+
+    function showResults() {
+        quizScreen.style.display = "none";
+        resultsScreen.style.display = "block";
+        progressBar.style.width = "100%";
+        
+        finalScoreText.innerText = `${score} / ${questions.length}`;
+        
+        // Calculate estimated level
+        let estimatedLevel = "A1";
+        if (score >= 9) estimatedLevel = "B2 (Upper-Intermediate)";
+        else if (score >= 7) estimatedLevel = "B1 (Intermediate)";
+        else if (score >= 4) estimatedLevel = "A2 (Elementary)";
+        else estimatedLevel = "A1 (Beginner)";
+        
+        levelBadge.innerText = `Estimated Level: ${estimatedLevel}`;
+        
+        // Render breakdown table data
+        breakdownRows.innerHTML = "";
+        for (const lvl in levelStats) {
+            const tr = document.createElement('tr');
+            const pct = Math.round((levelStats[lvl].correct / levelStats[lvl].total) * 100) || 0;
+            
+            tr.innerHTML = `
+                <td><strong>${lvl}</strong></td>
+                <td>${levelStats[lvl].correct} / ${levelStats[lvl].total}</td>
+                <td>${pct}% correct</td>
+            `;
+            breakdownRows.appendChild(tr);
+        }
+    }
+
+    restartBtn.addEventListener('click', () => {
+        currentQuestionIndex = 0;
+        score = 0;
+        for (const lvl in levelStats) {
+            levelStats[lvl].correct = 0;
+        }
+        resultsScreen.style.display = "none";
+        quizScreen.style.display = "block";
+        loadQuestion();
+    });
+
+    // Start App
+    loadQuestion();
+</script>
+
+</body>
+</html>
